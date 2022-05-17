@@ -7,7 +7,7 @@ from functools import wraps
 
 app = Flask(__name__)
 
-#configure sql
+
 
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
@@ -15,10 +15,10 @@ app.config['MYSQL_PASSWORD'] = '123456'
 app.config['MYSQL_DB'] = 'myflaskapp'
 app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 
-#int MYSQL
+
 mysql = MySQL(app)
 
-#Articles = Articles()
+
 
 @app.route('/')
 def index():
@@ -73,16 +73,16 @@ def register():
         username = form.username.data
         password = sha256_crypt.encrypt(str(form.password.data))
         
-        #create cursor
+       
         cur = mysql.connection.cursor()
 
         cur.execute("INSERT INTO users(name, email, username, password) VALUES(%S, %S, %S, %S)", (name, email, username, password))
         
 
-        #commit to db
+        
         mysql.connection.commit()
 
-        #close connection
+        
         cur.close()
 
         flash('You are now registered and can log in', 'success')
@@ -90,29 +90,28 @@ def register():
         redirect(url_for('login'))
     return render_template('register.html', form=form)
 
-#user login
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        #get form fields
+     
         username = request.form['username']
         password_candidate = request.form['password']
 
-        #cursor
+        
         cur = mysql.connection.cursor()
 
-        #get user by username
         result = cur.execute("SELECT * FROM users WHERE username = %s", [username])
 
         if result > 0:
-            #get hash
+           
             data = cur.fetchone()
             password = data['password']
 
-            #compare passwords
+          
             if sha256_crypt.verify(password_candidate, password):
-               #Passed
+              
                session['logged_in'] = True
                session['username'] = username
 
@@ -131,7 +130,7 @@ def login():
 
     return render_template('login.html')
 
-#check if user is logged in
+
 def is_logged_in(f):
     @wraps(f)
     def wrap(*args, **kwargs):
@@ -142,7 +141,7 @@ def is_logged_in(f):
             return redirect(url_for('login'))
         return wrap
 
-#logout
+
 @app.route('/logout')
 @is_logged_in
 def logout():
@@ -185,10 +184,10 @@ def add_article():
        cur.execute("INSERT INFO articles(title, body, author) VALUES(%S, %S, %S)",(title, body, session['username']))
 
 
-       #committing to database
+       
        mysql.connection.commit()
 
-       #close connection
+       
        cur.close()
 
        flash('Article Created', 'success')
@@ -197,7 +196,7 @@ def add_article():
 
        return render_template('add_article.html', form=form)
 
-#edit article
+
 @app.route('/edit_article/<string:id>')
 def edit_article(id):
     cur = mysql.connection.cursor()
@@ -222,10 +221,10 @@ if request.method == 'POST' and form.validate():
     cur.execute("INSERT INFO articles(title, body, author) VALUES(%S, %S, %S)",(title, body, session['username']))
 
 
-    #committing to database
+    
     mysql.connection.commit()
 
-    #close connection
+    
     cur.close()
 
     flash('Article Created', 'success')
