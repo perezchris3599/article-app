@@ -197,6 +197,44 @@ def add_article():
 
        return render_template('add_article.html', form=form)
 
+#edit article
+@app.route('/edit_article/<string:id>')
+def edit_article(id):
+    cur = mysql.connection.cursor()
+    
+    result = cur.execute("SELECT * FROM articles WHERE id = %s", [id])
+    
+    article = cur.fetchone()
+    
+    form = ArticleForm(request.form)
+    
+    form.title.data = article['title']
+    
+    form.body.data = article['body']
+
+
+if request.method == 'POST' and form.validate():
+    title = form.title.data
+    body = form.body.data
+
+    cur = mysql.connection.cursor()
+
+    cur.execute("INSERT INFO articles(title, body, author) VALUES(%S, %S, %S)",(title, body, session['username']))
+
+
+    #committing to database
+    mysql.connection.commit()
+
+    #close connection
+    cur.close()
+
+    flash('Article Created', 'success')
+
+    return redirect(url_for('dashboard'))
+
+    return render_template('add_article.html', form=form)
+
+
 
 if __name__ == '__main__':
     app.secret_key='secret123'
