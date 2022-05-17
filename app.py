@@ -7,18 +7,13 @@ from functools import wraps
 
 app = Flask(__name__)
 
-
-
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = '123456'
 app.config['MYSQL_DB'] = 'myflaskapp'
 app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 
-
 mysql = MySQL(app)
-
-
 
 @app.route('/')
 def index():
@@ -197,7 +192,7 @@ def add_article():
        return render_template('add_article.html', form=form)
 
 
-@app.route('/edit_article/<string:id>')
+@app.route('/edit_article/<string:id>', methods=['GET', 'POST'])
 def edit_article(id):
     cur = mysql.connection.cursor()
     
@@ -211,28 +206,37 @@ def edit_article(id):
     
     form.body.data = article['body']
 
-
 if request.method == 'POST' and form.validate():
     title = form.title.data
     body = form.body.data
 
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor() 
 
-    cur.execute("INSERT INFO articles(title, body, author) VALUES(%S, %S, %S)",(title, body, session['username']))
+    cur.execute("UPDATE articles SET name=%s, body%s WHERE id = %s", (name, body, id))
 
-
-    
     mysql.connection.commit()
 
-    
     cur.close()
 
-    flash('Article Created', 'success')
+    flash('Article Updated', 'success')
 
     return redirect(url_for('dashboard'))
 
-    return render_template('add_article.html', form=form)
+    return render_template('edit_article.html', form=form)
 
+@app.route('/delete_article/<string:id>', methods="POST")
+@is_logged_in
+def delete_article():
+
+    cur = mysql.connection.cursor()
+
+    cur.execute("DELETE FROM articles WHERE id = %s", [id])
+
+    cur.close()
+
+    flash('Article Deleted', 'success')
+
+    return redirect(url_for('dashboard'))
 
 
 if __name__ == '__main__':
