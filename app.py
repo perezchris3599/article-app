@@ -18,7 +18,7 @@ app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 #int MYSQL
 mysql = MySQL(app)
 
-Articles = Articles()
+#Articles = Articles()
 
 @app.route('/')
 def index():
@@ -30,11 +30,29 @@ def about():
 
 @app.route('/articles')
 def articles():
-    return render_template('articles.html', articles = Articles)
+    cur = mysql.connection.cursor()
+
+    result = cur.execute("SELECT * FROM articles")
+
+    articles = cur.fetchall()
+
+    if result > 0:
+        return render_template('articles.html', articles=articles)
+    else:
+        msg = 'No Articlers Found'
+        return render_template('articles.html', msg=msg)
+
+    cur.close()
 
 @app.route('/article/<string:id>/')
 def article(id):
-    return render_template('article.html', id=id)
+    cur = mysql.connection.cursor()
+
+    result = cur.execute("SELECT * FROM article WHERE id = %s" [id])
+
+    article = cur.fetchall()
+
+    return render_template('article.html', article=article)
 
 class RegisterForm(Form):
     name = StringField('Name', [validators.Length(min=1, max=50)])
@@ -74,7 +92,7 @@ def register():
 
 #user login
 
-@app.route('\login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         #get form fields
@@ -126,6 +144,7 @@ def is_logged_in(f):
 
 #logout
 @app.route('/logout')
+@is_logged_in
 def logout():
     session.clear()
     flash('You are now logged out', 'success')
@@ -134,7 +153,50 @@ def logout():
 @app.route('/dashboard')
 @is_logged_in
 def dashboard():
-    return render_template('dashboard.html')
+
+    cur = mysql.connection.cursor()
+
+    result = cur.execute("SELECT * FROM articles")
+
+    articles = cur.fetchall()
+
+    if result > 0:
+        return render_template('dashboard.html', articles=articles)
+    else:
+        msg = 'No Articlers Found'
+        return render_template('dashboard.html', msg=msg)
+
+    cur.close()
+class ArticleForm(Form):
+    title = StringField('Title', [validators.Length(min=1, max=200)])
+    body = TextareaField('Body', [validators.Length(min=30)])
+
+@app.route('/add_article', methods=['GET', 'POST']) 
+@is_logged_in
+
+def add_article():
+   form = ArticleForm(request.form)
+   if request.method == 'POST' and form.validate():
+       title = form.title.data
+       body = form.body.data
+
+       cur = mysql.connection.cursor()
+
+       cur.execute("INSERT INFO articles(title, body, author) VALUES(%S, %S, %S)",(title, body, session['username']))
+
+
+       #committing to database
+       mysql.connection.commit()
+
+       #close connection
+       cur.close()
+
+       flash('Article Created', 'success')
+
+       return redirect(url_for('dashboard'))
+
+       return render_template('add_article.html', form=form)
+
 
 if __name__ == '__main__':
     app.secret_key='secret123'
